@@ -19,6 +19,41 @@ from mmdet.datasets import (build_dataloader, build_dataset,
 from mmdet.models import build_detector
 
 
+from mmcv.runner import HOOKS, Hook
+
+
+@HOOKS.register_module()
+class MyHook(Hook):
+
+    def __init__(self, a, b):
+        print("hook init1")
+        pass
+
+    def before_run(self, runner):
+        print("hook init2")
+        pass
+
+    def after_run(self, runner):
+        print("hook init3")
+        pass
+
+    def before_epoch(self, runner):
+        print("hook init4")
+        pass
+
+    def after_epoch(self, runner):
+        print("hook init5")
+        pass
+
+    def before_iter(self, runner):
+        print("hook init6")
+        pass
+
+    def after_iter(self, runner):
+        print("hook init7")
+        pass
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description='MMDet test (and eval) a model')
@@ -240,8 +275,9 @@ def main():
             ]:
                 eval_kwargs.pop(key, None)
             eval_kwargs.update(dict(metric=args.eval, **kwargs))
+            #print("outputs", outputs)
             metric = dataset.evaluate(outputs, **eval_kwargs)
-            print(metric)
+            #print("metric", metric)
             metric_dict = dict(config=args.config, metric=metric)
             if args.work_dir is not None and rank == 0:
                 mmcv.dump(metric_dict, json_file)

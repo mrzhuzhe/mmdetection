@@ -73,8 +73,8 @@ def main():
     args = parse_args()
     cfg = retrieve_data_cfg(args.config, args.skip_type, args.cfg_options)
 
-    dataset = build_dataset(cfg.data.train)
 
+    dataset = build_dataset(cfg.data.train)
     progress_bar = mmcv.ProgressBar(len(dataset))
 
     for item in dataset:
@@ -85,7 +85,6 @@ def main():
         gt_masks = item.get('gt_masks', None)
         if gt_masks is not None:
             gt_masks = mask2ndarray(gt_masks)
-
         imshow_det_bboxes(
             item['img'],
             item['gt_bboxes'],
@@ -96,7 +95,7 @@ def main():
             wait_time=args.show_interval,
             out_file=filename,
             bbox_color=(255, 102, 61),
-            text_color=(255, 102, 61))
+            text_color=(255, 102, 61))       
 
         progress_bar.update()
 

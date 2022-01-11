@@ -149,6 +149,7 @@ class CocoDataset(CustomDataset):
             if ann['category_id'] not in self.cat_ids:
                 continue
             bbox = [x1, y1, x1 + w, y1 + h]
+
             if ann.get('iscrowd', False):
                 gt_bboxes_ignore.append(bbox)
             else:
@@ -169,7 +170,6 @@ class CocoDataset(CustomDataset):
             gt_bboxes_ignore = np.zeros((0, 4), dtype=np.float32)
 
         seg_map = img_info['filename'].replace('jpg', 'png')
-
         ann = dict(
             bboxes=gt_bboxes,
             labels=gt_labels,
@@ -517,6 +517,7 @@ class CocoDataset(CustomDataset):
                 redirect_string = io.StringIO()
                 with contextlib.redirect_stdout(redirect_string):
                     cocoEval.summarize()
+
                 print_log('\n' + redirect_string.getvalue(), logger=logger)
 
                 if classwise:  # Compute per-category AP
