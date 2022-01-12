@@ -21,39 +21,6 @@ from mmdet.models import build_detector
 
 from mmcv.runner import HOOKS, Hook
 
-
-@HOOKS.register_module()
-class MyHook(Hook):
-
-    def __init__(self, a, b):
-        print("hook init1")
-        pass
-
-    def before_run(self, runner):
-        print("hook init2")
-        pass
-
-    def after_run(self, runner):
-        print("hook init3")
-        pass
-
-    def before_epoch(self, runner):
-        print("hook init4")
-        pass
-
-    def after_epoch(self, runner):
-        print("hook init5")
-        pass
-
-    def before_iter(self, runner):
-        print("hook init6")
-        pass
-
-    def after_iter(self, runner):
-        print("hook init7")
-        pass
-
-
 def parse_args():
     parser = argparse.ArgumentParser(
         description='MMDet test (and eval) a model')

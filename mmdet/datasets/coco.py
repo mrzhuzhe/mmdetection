@@ -18,6 +18,39 @@ from .api_wrappers import COCO, COCOeval
 from .builder import DATASETS
 from .custom import CustomDataset
 
+import torch
+from torchvision.ops import box_iou
+from typing import List
+
+# f2 threhold
+ZZ_THR = 0.5
+# calculatef2 https://www.kaggle.com/c/tensorflow-great-barrier-reef/discussion/290757
+def calculate_score(
+    preds: List[torch.Tensor],
+    gts: List[torch.Tensor],
+    iou_th: float
+    #preds,
+    #gts,
+    #iou_th
+) -> float:
+    num_tp = 0
+    num_fp = 0
+    num_fn = 0
+    for p, gt in zip(preds, gts):
+        if len(p) and len(gt):
+            iou_matrix = box_iou(p[:,:4], gt)
+            tp = len(torch.where(iou_matrix.max(0)[0] >= iou_th)[0])
+            fp = len(p) - tp
+            fn = len(torch.where(iou_matrix.max(0)[0] < iou_th)[0])
+            num_tp += tp
+            num_fp += fp
+            num_fn += fn
+        elif len(p) == 0 and len(gt):
+            num_fn += len(gt)
+        elif len(p) and len(gt) == 0:
+            num_fp += len(p)
+    score = 5 * num_tp / (5 * num_tp + 4 * num_fn + num_fp)
+    return score
 
 @DATASETS.register_module()
 class CocoDataset(CustomDataset):
@@ -149,7 +182,6 @@ class CocoDataset(CustomDataset):
             if ann['category_id'] not in self.cat_ids:
                 continue
             bbox = [x1, y1, x1 + w, y1 + h]
-
             if ann.get('iscrowd', False):
                 gt_bboxes_ignore.append(bbox)
             else:
@@ -170,6 +202,7 @@ class CocoDataset(CustomDataset):
             gt_bboxes_ignore = np.zeros((0, 4), dtype=np.float32)
 
         seg_map = img_info['filename'].replace('jpg', 'png')
+
         ann = dict(
             bboxes=gt_bboxes,
             labels=gt_labels,
@@ -417,6 +450,9 @@ class CocoDataset(CustomDataset):
 
         eval_results = OrderedDict()
         cocoGt = self.coco
+
+        self.evalf2(results)
+
         for metric in metrics:
             msg = f'Evaluating {metric}...'
             if logger is None:
@@ -517,7 +553,6 @@ class CocoDataset(CustomDataset):
                 redirect_string = io.StringIO()
                 with contextlib.redirect_stdout(redirect_string):
                     cocoEval.summarize()
-
                 print_log('\n' + redirect_string.getvalue(), logger=logger)
 
                 if classwise:  # Compute per-category AP
@@ -572,3 +607,44 @@ class CocoDataset(CustomDataset):
         if tmp_dir is not None:
             tmp_dir.cleanup()
         return eval_results
+
+    def evalf2(self, results):
+        gt_bboxes = []
+        for i in range(len(self.img_ids)):
+
+            np_arr = results[i][0]
+            np_arr = np_arr[np_arr[:,4]>ZZ_THR]
+            results[i] = torch.tensor(np_arr)
+
+            ann_ids = self.coco.get_ann_ids(img_ids=self.img_ids[i])
+            ann_info = self.coco.load_anns(ann_ids)
+            if len(ann_info) == 0:
+                #gt_bboxes.append(np.zeros((0, 4)))
+                bboxes = np.zeros((0, 4))
+                bboxes = torch.tensor(bboxes)
+                gt_bboxes.append(bboxes)
+                continue
+            bboxes = []
+            for ann in ann_info:
+                if ann.get('ignore', False) or ann['iscrowd']:
+                    continue
+                x1, y1, w, h = ann['bbox']
+                bboxes.append([x1, y1, x1 + w, y1 + h])
+            # torch tensor 
+            bboxes = np.array(bboxes, dtype=np.float32)
+            bboxes = torch.tensor(bboxes)            
+            if bboxes.shape[0] == 0:
+                bboxes = np.zeros((0, 4))
+                bboxes = torch.tensor(bboxes)
+            gt_bboxes.append(bboxes)
+            
+
+        #print("\n results", results, "gt_bboxes", gt_bboxes)
+        #"""
+        iou_ths = np.arange(0.3, 0.85, 0.05)
+        scores = [calculate_score(results, gt_bboxes, iou_th) for iou_th in iou_ths]
+        ar = np.mean(scores)
+        print("\n\n", "F2SCORE", ar, "\n\n")
+        return ar
+        #"""
+

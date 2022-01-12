@@ -38,12 +38,13 @@ train_pipeline = [
     dict(
         type='RandomAffine',
         scaling_ratio_range=(0.1, 2),
-        border=(-img_scale[0] // 2, -img_scale[1] // 2)),
-    dict(
-        type='MixUp',
-        img_scale=img_scale,
-        ratio_range=(0.8, 1.6),
-        pad_val=114.0),
+        border=(-img_scale[0] // 2, -img_scale[1] // 2)),        
+    # this MixUp is different from original yolox mixup original is copy paste
+    #dict(
+    #    type='MixUp',
+    #    img_scale=img_scale,
+    #    ratio_range=(0.8, 1.6),
+    #    pad_val=114.0),
     dict(type='YOLOXHSVRandomAug'),
     dict(type='RandomFlip', flip_ratio=0.5),
     # According to the official implementation, multi-scale
@@ -111,7 +112,8 @@ data = dict(
     test=dict(
         classes=classes,
         type=dataset_type,
-        ann_file=data_root + 'out/annotations_valid_2.json',
+        ann_file=data_root + 'out/annotations_test_2.json',
+        #ann_file=data_root + 'out/annotations_valid_2.json',
         img_prefix=data_root + 'out/all/',
         pipeline=test_pipeline))
 
@@ -129,8 +131,8 @@ optimizer_config = dict(grad_clip=None)
 #max_epochs = 300
 #num_last_epochs = 15
 
-max_epochs = 30
-num_last_epochs = 5
+max_epochs = 20
+num_last_epochs = 3
 
 resume_from = None
 interval = 1
@@ -167,7 +169,10 @@ custom_hooks = [
         priority=49)
 ]
 
-load_from = f'{data_root}\out\weights\yolox_s_8x8_300e_coco_20211121_095711-4592a793.pth'
+work_dir = f'./work_dirs/reef/yolos'
+
+#load_from = f'{data_root}\out\weights\yolox_s_8x8_300e_coco_20211121_095711-4592a793.pth'
+load_from = f'{work_dir}/epoch_2.pth'
 
 checkpoint_config = dict(interval=interval)
 """
@@ -183,7 +188,6 @@ evaluation = dict(
 
 """
 
-work_dir = work_dir = f'./work_dirs/reef/yolos'
 
 evaluation = dict(
     classwise=True, 
