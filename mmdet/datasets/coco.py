@@ -24,7 +24,7 @@ from typing import List
 
 # f2 threhold
 ZZ_THR = 0.5
-# calculatef2 https://www.kaggle.com/c/tensorflow-great-barrier-reef/discussion/290757
+# [TODO] calculatef script update https://www.kaggle.com/c/tensorflow-great-barrier-reef/discussion/290757
 def calculate_score(
     preds: List[torch.Tensor],
     gts: List[torch.Tensor],
@@ -451,8 +451,6 @@ class CocoDataset(CustomDataset):
         eval_results = OrderedDict()
         cocoGt = self.coco
 
-        self.evalf2(results)
-
         for metric in metrics:
             msg = f'Evaluating {metric}...'
             if logger is None:
@@ -606,23 +604,35 @@ class CocoDataset(CustomDataset):
                     f'{ap[4]:.3f} {ap[5]:.3f}')
         if tmp_dir is not None:
             tmp_dir.cleanup()
+        
+        # tensor must be torch.float
+        self.evalf2(results)
+
         return eval_results
+
+    # [TODO] there is still a tensor convert bug in yolox head  
+    # \mmdetection\mmdet\models\dense_heads\yolox_head.py:284: 
+    # UserWarning: Creating a tensor from a list of numpy.ndarrays is extremely slow. Please consider 
+    # converting the list to a single numpy.ndarray with numpy.array() before converting to a tensor. 
+    # (Triggered internally at  ..\torch\csrc\utils\tensor_new.cpp:201.)
+    # flatten_bboxes[..., :4] /= flatten_bboxes.new_tensor(
+    # 有两种可能 1. 报错提示错了 2. tensor 预编译时报错
 
     def evalf2(self, results):
         gt_bboxes = []
+        dt_bboxes = []  # avoid shallow clone bug
         for i in range(len(self.img_ids)):
 
-            np_arr = results[i][0]
-            np_arr = np_arr[np_arr[:,4]>ZZ_THR]
-            results[i] = torch.tensor(np_arr)
+            #np_arr = np.squeeze(results[i]) # squeeze for py ?
+            np_arr = results[i][0] # squeeze for py 
+
+            dt_bboxes.append(torch.tensor(np_arr[np_arr[:,4] > ZZ_THR], dtype=torch.half))
 
             ann_ids = self.coco.get_ann_ids(img_ids=self.img_ids[i])
             ann_info = self.coco.load_anns(ann_ids)
             if len(ann_info) == 0:
                 #gt_bboxes.append(np.zeros((0, 4)))
-                bboxes = np.zeros((0, 4))
-                bboxes = torch.tensor(bboxes)
-                gt_bboxes.append(bboxes)
+                gt_bboxes.append(torch.zeros((0, 4), dtype=torch.half))
                 continue
             bboxes = []
             for ann in ann_info:
@@ -631,20 +641,16 @@ class CocoDataset(CustomDataset):
                 x1, y1, w, h = ann['bbox']
                 bboxes.append([x1, y1, x1 + w, y1 + h])
             # torch tensor 
-            bboxes = np.array(bboxes, dtype=np.float32)
-            bboxes = torch.tensor(bboxes)            
+            # bboxes = np.array(bboxes, dtype=np.float32)
+            bboxes = torch.tensor(bboxes, dtype=torch.half)            
             if bboxes.shape[0] == 0:
-                bboxes = np.zeros((0, 4))
-                bboxes = torch.tensor(bboxes)
+                #boxes = np.zeros((0, 4))
+                bboxes = torch.zeros((0, 4), dtype=torch.half)
             gt_bboxes.append(bboxes)
-            
 
-        #print("\n results", results, "gt_bboxes", gt_bboxes)
-        #"""
+        #print("\n dt_bboxes", dt_bboxes, "gt_bboxes", gt_bboxes)
         iou_ths = np.arange(0.3, 0.85, 0.05)
-        scores = [calculate_score(results, gt_bboxes, iou_th) for iou_th in iou_ths]
+        scores = [calculate_score(dt_bboxes, gt_bboxes, iou_th) for iou_th in iou_ths]
         ar = np.mean(scores)
         print("\n\n", "F2SCORE", ar, "\n\n")
         return ar
-        #"""
-

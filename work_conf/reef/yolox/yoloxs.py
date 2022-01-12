@@ -112,8 +112,8 @@ data = dict(
     test=dict(
         classes=classes,
         type=dataset_type,
-        ann_file=data_root + 'out/annotations_test_2.json',
-        #ann_file=data_root + 'out/annotations_valid_2.json',
+        #ann_file=data_root + 'out/annotations_test_2.json',
+        ann_file=data_root + 'out/annotations_valid_2.json',
         img_prefix=data_root + 'out/all/',
         pipeline=test_pipeline))
 
@@ -171,8 +171,8 @@ custom_hooks = [
 
 work_dir = f'./work_dirs/reef/yolos'
 
-#load_from = f'{data_root}\out\weights\yolox_s_8x8_300e_coco_20211121_095711-4592a793.pth'
-load_from = f'{work_dir}/epoch_2.pth'
+load_from = f'{data_root}\out\weights\yolox_s_8x8_300e_coco_20211121_095711-4592a793.pth'
+#load_from = f'{work_dir}/epoch_3.pth'
 
 checkpoint_config = dict(interval=interval)
 """
@@ -190,7 +190,7 @@ evaluation = dict(
 
 
 evaluation = dict(
-    classwise=True, 
+    #classwise=True, #only one class
     interval=1, 
     metric=['bbox'],
     jsonfile_prefix=f"{work_dir}/valid")
