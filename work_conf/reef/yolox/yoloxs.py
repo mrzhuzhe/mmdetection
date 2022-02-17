@@ -1,15 +1,19 @@
 __CFGDIR__ = "../../../configs"
 _base_ = [f'{__CFGDIR__}/_base_/schedules/schedule_1x.py', f'{__CFGDIR__}/_base_/default_runtime.py']
 
-#img_scale = (640, 640)
-img_scale = (1280, 1280)
+#mg_scale = (640, 640)
+#img_scale = (960, 960)
+img_scale = (736, 1280)
 num_class = 1
 # model settings
 model = dict(
     type='YOLOX',
     input_size=img_scale,
-    random_size_range=(15, 25),
-    random_size_interval=10,
+    #random_size_range=(15, 25),
+    #random_size_range=(35, 45),
+    #random_size_range=(45, 55),
+    #random_size_interval=10,
+    random_size_interval=0,
     backbone=dict(type='CSPDarknet', deepen_factor=0.33, widen_factor=0.5),
     neck=dict(
         type='YOLOXPAFPN',
@@ -24,7 +28,7 @@ model = dict(
     test_cfg=dict(score_thr=0.01, nms=dict(type='nms', iou_threshold=0.65)))
 
 # dataset settings
-data_root = '../reef-data/'
+data_root = '../reef-data/out/all/'
 
 dataset_type = 'CocoDataset'
 
@@ -37,20 +41,21 @@ train_pipeline = [
     dict(type='Mosaic', img_scale=img_scale, pad_val=114.0),
     dict(
         type='RandomAffine',
-        scaling_ratio_range=(0.1, 2),
+        scaling_ratio_range=(0.1, 1),
+        #scaling_ratio_range=(0.5, 1.5),
         border=(-img_scale[0] // 2, -img_scale[1] // 2)),        
     # this MixUp is different from original yolox mixup original is copy paste
-    #dict(
-    #    type='MixUp',
-    #    img_scale=img_scale,
-    #    ratio_range=(0.8, 1.6),
-    #    pad_val=114.0),
+    dict(
+        type='MixUp',
+        img_scale=img_scale,
+        ratio_range=(0.1, 1),
+        pad_val=114.0),
     dict(type='YOLOXHSVRandomAug'),
     dict(type='RandomFlip', flip_ratio=0.5),
     # According to the official implementation, multi-scale
     # training is not considered here but in the
     # 'mmdet/models/detectors/yolox.py'.
-    dict(type='Resize', img_scale=img_scale, keep_ratio=True),
+    #dict(type='Resize', img_scale=img_scale, keep_ratio=True),
     
     dict(type='Normalize', **img_norm_cfg),
 
@@ -70,8 +75,8 @@ train_dataset = dict(
     dataset=dict(
         classes=classes,
         type=dataset_type,
-        ann_file=data_root + 'out/annotations_train_2.json',
-        img_prefix=data_root + 'out/all/',
+        ann_file=data_root + 'annotations/annotations_train_2.json',
+        img_prefix=data_root + 'images/',
         pipeline=[
             dict(type='LoadImageFromFile'),
             dict(type='LoadAnnotations', with_bbox=True)
@@ -106,15 +111,15 @@ data = dict(
     val=dict(
         classes=classes,
         type=dataset_type,
-        ann_file=data_root + 'out/annotations_valid_2.json',
-        img_prefix=data_root + 'out/all/',
+        ann_file=data_root + 'annotations/annotations_valid_2.json',
+        img_prefix=data_root + 'images/',
         pipeline=test_pipeline),
     test=dict(
         classes=classes,
         type=dataset_type,
         #ann_file=data_root + 'out/annotations_test_2.json',
-        ann_file=data_root + 'out/annotations_valid_2.json',
-        img_prefix=data_root + 'out/all/',
+        ann_file=data_root + 'annotations/annotations_valid_2.json',
+        img_prefix=data_root + 'images/',
         pipeline=test_pipeline))
 
 # optimizer
@@ -197,4 +202,5 @@ evaluation = dict(
 
 log_config = dict(interval=50)
 
-fp16 = dict(loss_scale=512.0)
+# seems not support fp16
+#fp16 = dict(loss_scale=512.0)

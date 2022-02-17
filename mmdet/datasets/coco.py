@@ -606,7 +606,7 @@ class CocoDataset(CustomDataset):
             tmp_dir.cleanup()
         
         # tensor must be torch.float
-        self.evalf2(results)
+        #self.evalf2(results)
 
         return eval_results
 
