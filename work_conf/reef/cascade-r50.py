@@ -198,7 +198,7 @@ albu_train_transforms = [
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 
-img_scale = (736, 1280)
+img_scale = (1440, 2560)
 
 
 albu_train_transforms = [
@@ -276,7 +276,7 @@ albu_train_transforms = [
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='Resize', img_scale=(1333, 720), keep_ratio=True),    
+    dict(type='Resize', img_scale=(2560, 1440), keep_ratio=True),    
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),  
     
@@ -306,8 +306,8 @@ test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        img_scale=(1333, 720),
-        flip=True,
+        img_scale=(2560, 1440),
+        flip=False,
         flip_direction=["horizontal","vertical"],
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -320,7 +320,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=12,
+    samples_per_gpu=2,
     workers_per_gpu=2,
     train=dict(
             classes=classes,
@@ -343,7 +343,7 @@ data = dict(
 )
 
 nx = 1
-work_dir = f'./work_dirs/reef/cascade-r50'
+work_dir = f'./work_dirs/reef/cascade-r50-large'
 evaluation = dict(
     classwise=True,
     interval=1,
@@ -356,11 +356,16 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=1/3,
-    step=[8 * nx, 11 * nx])
+    #step=[8 * nx, 11 * nx])
+    step=[3 * nx])
 custom_hooks = [dict(type='NumClassCheckHook')]
-total_epochs = 12 * nx
+total_epochs = 5* nx
 runner = dict(type='EpochBasedRunner', max_epochs=total_epochs)
-checkpoint_config = dict(interval=total_epochs, save_optimizer=False)
+
+#checkpoint_config = dict(interval=total_epochs, save_optimizer=False)
+
+checkpoint_config = dict(interval=1)
+
 log_config = dict(interval=50, hooks=[dict(type='TextLoggerHook')])
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
